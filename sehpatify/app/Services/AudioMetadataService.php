@@ -13,58 +13,63 @@ class AudioMetadataService
     public static function extractAndStoreCover(string $fullPath, string $originalName = ''): array
     {
         $meta = [
-            'title'        => null,
-            'album'        => null,
-            'duration_sec' => null,
-            'duration'     => null,
-            'cover_path'   => null,
-        ];
+         'title'        => null,
+         'artist'       => null,
+         'album'        => null,
+         'duration_sec' => null,
+         'duration'     => null,
+         'cover_path'   => null,
+     ];
 
-        $coverData = null;
-        $coverMime = 'image/jpeg';
+     $coverData = null;
+     $coverMime = 'image/jpeg';
 
-        // ۱. اگر پکیج getID3 نصب شده باشد اولویت با آن است
-        if (class_exists(\getID3::class) && is_file($fullPath)) {
-            $getID3 = new \getID3();
-            $info = $getID3->analyze($fullPath);
-            \getid3_lib::CopyTagsToComments($info);
+     // ۱. اگر پکیج getID3 نصب شده باشد اولویت با آن است
+     if (class_exists(\getID3::class) && is_file($fullPath)) {
+         $getID3 = new \getID3();
+         $info = $getID3->analyze($fullPath);
+         \getid3_lib::CopyTagsToComments($info);
 
-            $meta['title'] = $info['comments']['title'][0] ?? null;
-            $meta['album'] = $info['comments']['album'][0] ?? null;
-            if (!empty($info['playtime_seconds'])) {
-                $meta['duration_sec'] = (int) round($info['playtime_seconds']);
-            }
-            if (!empty($info['comments']['picture'][0]['data'])) {
-                $coverData = $info['comments']['picture'][0]['data'];
-                $coverMime = $info['comments']['picture'][0]['image_mime'] ?? 'image/jpeg';
-            }
-        } elseif (is_file($fullPath)) {
-            // ۲. پارسر بومی بدون وابستگی برای MP3، M4A/MP4 و FLAC
-            $header = file_get_contents($fullPath, false, null, 0, 16) ?: '';
-            $ext = strtolower(pathinfo($originalName ?: $fullPath, PATHINFO_EXTENSION));
+         $meta['title'] = $info['comments']['title'][0] ?? null;
+         $meta['artist'] = $info['comments']['artist'][0] ?? null;
+         $meta['album'] = $info['comments']['album'][0] ?? null;
+         if (!empty($info['playtime_seconds'])) {
+             $meta['duration_sec'] = (int) round($info['playtime_seconds']);
+         }
+         if (!empty($info['comments']['picture'][0]['data'])) {
+             $coverData = $info['comments']['picture'][0]['data'];
+             $coverMime = $info['comments']['picture'][0]['image_mime'] ?? 'image/jpeg';
+         }
+     } elseif (is_file($fullPath)) {
+         // ۲. پارسر بومی بدون وابستگی برای MP3، M4A/MP4 و FLAC
+         $header = file_get_contents($fullPath, false, null, 0, 16) ?: '';
+         $ext = strtolower(pathinfo($originalName ?: $fullPath, PATHINFO_EXTENSION));
 
-            if (str_starts_with($header, 'ID3') || $ext === 'mp3') {
-                $parsed = self::parseId3v2($fullPath);
-                $meta['title'] = $parsed['title'] ?? null;
-                $meta['album'] = $parsed['album'] ?? null;
-                $coverData = $parsed['cover_data'] ?? null;
-                $coverMime = $parsed['cover_mime'] ?? 'image/jpeg';
-            } elseif (str_starts_with($header, 'fLaC') || $ext === 'flac') {
-                $parsed = self::parseFlac($fullPath);
-                $meta['title'] = $parsed['title'] ?? null;
-                $meta['album'] = $parsed['album'] ?? null;
-                $meta['duration_sec'] = $parsed['duration_sec'] ?? null;
-                $coverData = $parsed['cover_data'] ?? null;
-                $coverMime = $parsed['cover_mime'] ?? 'image/jpeg';
-            } elseif (str_contains(substr($header, 4, 8), 'ftyp') || in_array($ext, ['m4a', 'mp4', 'aac'])) {
-                $parsed = self::parseMp4($fullPath);
-                $meta['title'] = $parsed['title'] ?? null;
-                $meta['album'] = $parsed['album'] ?? null;
-                $meta['duration_sec'] = $parsed['duration_sec'] ?? null;
-                $coverData = $parsed['cover_data'] ?? null;
-                $coverMime = $parsed['cover_mime'] ?? 'image/jpeg';
-            }
-        }
+         if (str_starts_with($header, 'ID3') || $ext === 'mp3') {
+             $parsed = self::parseId3v2($fullPath);
+             $meta['title'] = $parsed['title'] ?? null;
+             $meta['artist'] = $parsed['artist'] ?? null;
+             $meta['album'] = $parsed['album'] ?? null;
+             $coverData = $parsed['cover_data'] ?? null;
+             $coverMime = $parsed['cover_mime'] ?? 'image/jpeg';
+         } elseif (str_starts_with($header, 'fLaC') || $ext === 'flac') {
+             $parsed = self::parseFlac($fullPath);
+             $meta['title'] = $parsed['title'] ?? null;
+             $meta['artist'] = $parsed['artist'] ?? null;
+             $meta['album'] = $parsed['album'] ?? null;
+             $meta['duration_sec'] = $parsed['duration_sec'] ?? null;
+             $coverData = $parsed['cover_data'] ?? null;
+             $coverMime = $parsed['cover_mime'] ?? 'image/jpeg';
+         } elseif (str_contains(substr($header, 4, 8), 'ftyp') || in_array($ext, ['m4a', 'mp4', 'aac'])) {
+             $parsed = self::parseMp4($fullPath);
+             $meta['title'] = $parsed['title'] ?? null;
+             $meta['artist'] = $parsed['artist'] ?? null;
+             $meta['album'] = $parsed['album'] ?? null;
+             $meta['duration_sec'] = $parsed['duration_sec'] ?? null;
+             $coverData = $parsed['cover_data'] ?? null;
+             $coverMime = $parsed['cover_mime'] ?? 'image/jpeg';
+         }
+     }
 
         // ذخیره کاور استخراج‌شده در public/covers
         if ($coverData && strlen($coverData) > 100) {
