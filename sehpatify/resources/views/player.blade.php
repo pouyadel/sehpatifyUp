@@ -2969,9 +2969,172 @@
     height: 38px !important;
   }
 }
+/* ================= PRELOADER سهپاتیفای ================= */
+#sehpatify-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 42%, rgba(16, 185, 84, 0.14) 0%, #07070C 58%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.45s ease, transform 0.45s ease;
+}
+#sehpatify-preloader.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+.preloader-core {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.preloader-logo-ring {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 14, 23, 0.82);
+  border: 1px solid rgba(16, 185, 84, 0.35);
+  box-shadow: 0 0 40px rgba(16, 185, 84, 0.28), inset 0 0 18px rgba(16, 185, 84, 0.12);
+  animation: preloaderFloat 2.1s ease-in-out infinite;
+}
+.preloader-logo-ring::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 34px;
+  background: radial-gradient(circle, rgba(16, 185, 84, 0.38), transparent 70%);
+  filter: blur(14px);
+  z-index: -1;
+  animation: preloaderGlow 2.1s ease-in-out infinite;
+}
+.preloader-logo-ring img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
+.preloader-brand {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--text);
+}
+.preloader-eq {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  height: 24px;
+}
+.preloader-eq span {
+  width: 4px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to top, #0d9643, #10B954, #4ade80);
+  box-shadow: 0 0 10px rgba(16, 185, 84, 0.55);
+  animation: preloaderEq 0.9s ease-in-out infinite;
+}
+.preloader-eq span:nth-child(2) { animation-delay: 0.15s; }
+.preloader-eq span:nth-child(3) { animation-delay: 0.3s; }
+.preloader-eq span:nth-child(4) { animation-delay: 0.45s; }
+.preloader-eq span:nth-child(5) { animation-delay: 0.2s; }
+.preloader-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+@keyframes preloaderEq {
+  0%, 100% { height: 7px; opacity: 0.45; }
+  50% { height: 24px; opacity: 1; }
+}
+@keyframes preloaderFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes preloaderGlow {
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+/* ============ نوار سبز بافرینگ روی تمام نوارهای پخش ============ */
+.player-progress-bar-wrap,
+.slider-rail {
+  overflow: hidden;
+}
+.slider-buffered {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: rgba(16, 185, 84, 0.25);
+  border-radius: var(--radius-full);
+  pointer-events: none;
+  transition: width 0.25s linear;
+}
+.audio-buffer-runner {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 84, 0.14);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 4;
+}
+.audio-buffer-runner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 36%;
+  left: -36%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, transparent 0%, #10B954 35%, #5eff9b 50%, #10B954 65%, transparent 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 84, 0.95);
+  animation: sehpatifyBufferSweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+body.audio-is-buffering .audio-buffer-runner {
+  opacity: 1;
+}
+@keyframes sehpatifyBufferSweep {
+  0%   { left: -36%; }
+  50%  { left: 100%; }
+  100% { left: -36%; }
+}
+/* اسپینر ظریف روی دکمه پخش هنگام بافرینگ */
+.play-spinner-svg {
+  animation: sehpatifySpin 0.85s linear infinite;
+}
+@keyframes sehpatifySpin {
+  to { transform: rotate(360deg); }
+}
   </style>
 </head>
 <body>
+  <!-- پری‌لودر اولیه سایت تا زمان دریافت لیست آهنگ‌ها -->
+  <div id="sehpatify-preloader" aria-label="در حال بارگذاری سهپاتیفای">
+    <div class="preloader-core">
+      <div class="preloader-logo-ring">
+        <img src="/logo.png" alt="سهپاتیفای" />
+      </div>
+      <div class="preloader-brand">SEHPATIFY</div>
+      <div class="preloader-eq">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="preloader-sub">در حال بارگذاری موسیقی‌ها...</div>
+    </div>
+  </div>
   <div id="app">
     <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileMenu()"></div>
     <!-- سایدبار ناوبری دسکتاپ -->
@@ -3645,7 +3808,9 @@
     <!-- مینی پلیر پایینی -->
     <div class="mini-player" id="mini-player" onclick="toggleFullPlayer()">
       <div class="player-progress-bar-wrap" id="mini-progress-top">
+        <div class="slider-buffered" id="progress-top-buffered"></div>
         <div class="player-progress-fill" id="progress-top-fill"></div>
+        <div class="audio-buffer-runner"></div>
       </div>
 
       <div class="player-left-track">
@@ -3684,7 +3849,9 @@
           <span class="time-val" id="mini-time-cur">0:00</span>
           <div class="interactive-slider-track" id="mini-scrub-track">
             <div class="slider-rail">
+              <div class="slider-buffered" id="mini-scrub-buffered"></div>
               <div class="slider-fill" id="mini-scrub-fill"></div>
+              <div class="audio-buffer-runner"></div>
             </div>
           </div>
           <span class="time-val" id="mini-time-tot">0:00</span>
@@ -3759,7 +3926,9 @@
           <span class="time-val" id="full-time-cur">0:00</span>
           <div class="interactive-slider-track" id="full-scrub-track">
             <div class="slider-rail">
+              <div class="slider-buffered" id="full-scrub-buffered"></div>
               <div class="slider-fill" id="full-scrub-fill"></div>
+              <div class="audio-buffer-runner"></div>
             </div>
           </div>
           <span class="time-val" id="full-time-tot">0:00</span>
@@ -4020,10 +4189,23 @@
           loadTrackFromQueue(0);
         }
         updateFavoriteBadges();
-      } catch (err) {
+     } catch (err) {
         console.warn('خطا در دریافت اطلاعات سرور');
+      } finally {
+        hideAppPreloader();
       }
     }
+
+    function hideAppPreloader() {
+      const loader = document.getElementById('sehpatify-preloader');
+      if (!loader || loader.classList.contains('is-hidden')) return;
+      setTimeout(() => {
+        loader.classList.add('is-hidden');
+        setTimeout(() => loader.remove(), 500);
+      }, 180);
+    }
+    // تضمین باز شدن صفحه در صورت کندی شدید اینترنت (حداکثر ۷ ثانیه)
+    setTimeout(hideAppPreloader, 7000);
 
     async function refreshUserPlaylistsFromServer() {
       try {
@@ -5007,7 +5189,13 @@
       if (realPlayer.src !== audioUrl) {
         realPlayer.src = audioUrl;
       }
-
+      if (realPlayer.src !== audioUrl) {
+        realPlayer.src = audioUrl;
+        updateBufferedBar();
+      }
+      if (realPlayer.readyState < 3) {
+        setAudioBuffering(true);
+      }
       realPlayer.play().then(() => {
         isPlaying = true;
         updatePlayIcons(true);
@@ -5134,13 +5322,58 @@
       });
     }
 
+    let isAudioBuffering = false;
+
+    function setAudioBuffering(state) {
+      isAudioBuffering = !!state;
+      document.body.classList.toggle('audio-is-buffering', isAudioBuffering);
+      updatePlayIcons(isPlaying);
+    }
+
+    function updateBufferedBar() {
+      const track = CURRENT_QUEUE[currentQueueIndex];
+      const total = (realPlayer.duration && isFinite(realPlayer.duration))
+        ? realPlayer.duration
+        : (track ? (track.duration_sec || 210) : 210);
+      let pct = 0;
+      if (realPlayer.buffered && realPlayer.buffered.length > 0 && total > 0) {
+        const end = realPlayer.buffered.end(realPlayer.buffered.length - 1);
+        pct = Math.max(0, Math.min(100, (end / total) * 100));
+      }
+      ['mini-scrub-buffered', 'full-scrub-buffered', 'progress-top-buffered'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.width = pct + '%';
+      });
+    }
+
+    // رویدادهای استاندارد بافرینگ HTML5 Audio
+    ['loadstart', 'waiting', 'stalled', 'seeking'].forEach(evt => {
+      realPlayer.addEventListener(evt, () => {
+        if (realPlayer.src && !realPlayer.paused) {
+          setAudioBuffering(true);
+        }
+      });
+    });
+
+    ['playing', 'canplay', 'canplaythrough', 'seeked', 'pause', 'ended', 'error', 'abort'].forEach(evt => {
+      realPlayer.addEventListener(evt, () => {
+        if (evt === 'seeked' && realPlayer.readyState < 3 && !realPlayer.paused) return;
+        setAudioBuffering(false);
+        updateBufferedBar();
+      });
+    });
+
+    realPlayer.addEventListener('progress', updateBufferedBar);
+
     function updatePlayIcons(playing) {
       const playSvg = `<svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
       const pauseSvg = `<svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+      const spinnerSvg = `<svg class="play-spinner-svg" width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity="0.28" stroke-width="3"></circle><path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path></svg>`;
+      const iconHtml = isAudioBuffering ? spinnerSvg : (playing ? pauseSvg : playSvg);
       const m = document.getElementById('main-play-btn');
       const f = document.getElementById('full-play-btn');
-      if (m) m.innerHTML = playing ? pauseSvg : playSvg;
-      if (f) f.innerHTML = playing ? pauseSvg : playSvg;
+      if (m) m.innerHTML = iconHtml;
+      if (f) f.innerHTML = iconHtml;
     }
 
     function renderLyrics(track) {

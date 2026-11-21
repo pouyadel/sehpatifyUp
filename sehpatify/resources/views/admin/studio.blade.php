@@ -1703,6 +1703,10 @@
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn-secondary" onclick="exportTracksJson()">خروجی JSON</button>
+              <button class="btn-secondary" style="border-color:rgba(16,185,84,0.45); color:var(--brand);" onclick="openModal('modal-bulk-excel')">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <span>آپلود دسته‌ای اکسل</span>
+              </button>
               <button class="btn-quick-action" onclick="openAddTrackModal()">
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                 <span>افزودن آهنگ جدید</span>
@@ -1713,7 +1717,11 @@
           <div class="panel-card">
             <div class="table-controls-bar">
               <div class="filter-chips-row">
-                <button class="filter-chip active" onclick="filterTracksTable('all', this)">همه آهنگ‌ها</button>
+                <button class="filter-chip active" id="chip-filter-all" onclick="filterTracksTable('all', this)">همه آهنگ‌ها</button>
+                <button class="filter-chip" id="chip-filter-drafts" onclick="filterTracksTable('drafts', this)" style="border-color:rgba(245,158,11,0.45); color:#fbbf24;">
+                  در انتظار صوت (<span id="draft-tracks-count">۰</span>)
+                </button>
+                <button class="filter-chip" onclick="filterTracksTable('published', this)">منتشرشده</button>
                 <button class="filter-chip" onclick="filterTracksTable('synced', this)">دارای لیریکس</button>
                 <button class="filter-chip" onclick="filterTracksTable('no-lyrics', this)">فاقد لیریکس</button>
                 <button class="filter-chip" onclick="filterTracksTable('lossless', this)">FLAC Lossless</button>
@@ -2031,7 +2039,7 @@
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">عنوان ترانه *</label>
+            <label class="form-label">عنوان ترانه (خالی = استخراج خودکار از فایل صوتی)</label>
             <input type="text" class="form-control" id="track-form-name" placeholder="مثال: Pain" />
           </div>
           <div class="form-group">
@@ -2105,7 +2113,7 @@
 
         <div class="form-group">
           <label class="form-label">یا آدرس اینترنتی کاور (URL)</label>
-          <input type="text" class="form-control" id="track-form-cover" value="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=80" />
+          <input type="text" class="form-control" id="track-form-cover"  />
         </div>
 
         <div class="modal-actions">
@@ -2114,7 +2122,37 @@
         </div>
       </div>
     </div>
+            <!-- MODAL: BULK EXCEL IMPORT -->
+<div class="modal-backdrop" id="modal-bulk-excel">
+  <div class="modal-container" style="max-width:560px;">
+    <div class="modal-head">
+      <h3 class="modal-title">آپلود دسته‌ای آهنگ‌ها با فایل اکسل (حالت پیش‌نویس)</h3>
+      <button class="btn-table-action" onclick="closeModal('modal-bulk-excel')">✕</button>
+    </div>
 
+    <div style="background:rgba(16,185,84,0.08); border:1px solid rgba(16,185,84,0.28); border-radius:12px; padding:12px 14px; font-size:12px; line-height:1.8; color:var(--text); margin-bottom:14px;">
+      اطلاعات تمام آهنگ‌ها در حالت <strong>پیش‌نویس (مخفی از سایت)</strong> ذخیره می‌شوند. پس از آن، جلوی هر ردیف روی دکمه <strong>«آپلود صوت و انتشار»</strong> کلیک کنید تا <strong>عنوان و کاور به‌صورت خودکار از فایل صوتی برداشته شده</strong> و آهنگ بلافاصله در سایت منتشر شود.
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+      <span style="font-size:12px; color:var(--muted);">ستون‌های اکسل: <code dir="ltr">title, artists, album, genre, search_keywords, is_lossless, cover_url, lyrics</code></span>
+      <a href="/api/admin/tracks/import-template" class="btn-secondary" style="text-decoration:none; font-size:12px; padding:7px 12px;">
+        دانلود فایل نمونه اکسل (.xlsx)
+      </a>
+    </div>
+
+    <div class="form-group" style="background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; border:1px dashed var(--border-brand);">
+      <label class="form-label" style="color:var(--brand); font-weight:800;">انتخاب فایل اکسل (.xlsx یا .csv)</label>
+      <input type="file" class="form-control" id="bulk-excel-file-input" accept=".xlsx,.csv,.txt" />
+      <span style="font-size:11px; color:var(--muted); margin-top:4px; display:block;">ستون <code>title</code> می‌تواند خالی یا موقت باشد؛ موقع آپلود صوت، نام و کاور از فایل برداشته می‌شود. چند خواننده را با کاما (<code>,</code>) جدا کنید.</span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-bulk-excel')">انصراف</button>
+      <button class="btn-quick-action" id="btn-submit-bulk-excel" onclick="submitBulkExcelImport()">ایمپورت در لیست پیش‌نویس</button>
+    </div>
+  </div>
+</div>
     <!-- MODAL 2: ADD / EDIT PLAYLIST (دارای سرچ‌بار اختصاصی) -->
     <div class="modal-backdrop" id="modal-playlist">
       <div class="modal-container">
@@ -2142,7 +2180,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">یا آدرس اینترنتی تصویر (URL)</label>
-            <input type="text" class="form-control" id="playlist-form-cover" placeholder="https://..." value="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500" />
+            <input type="text" class="form-control" id="playlist-form-cover" placeholder="https://..."  />
           </div>
         </div>
 
@@ -2202,7 +2240,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">یا آدرس اینترنتی کاور (URL)</label>
-            <input type="text" class="form-control" id="genre-form-cover" placeholder="https://..." value="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500" />
+            <input type="text" class="form-control" id="genre-form-cover" placeholder="https://..."  />
           </div>
         </div>
 
@@ -2259,7 +2297,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">یا آدرس اینترنتی تصویر (URL)</label>
-            <input type="text" class="form-control" id="artist-form-image-url" value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500" />
+            <input type="text" class="form-control" id="artist-form-image-url"  />
           </div>
         </div>
 
@@ -2398,7 +2436,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">یا آدرس اینترنتی کاور (URL)</label>
-            <input type="text" class="form-control" id="album-form-cover" placeholder="https://..." value="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500" />
+            <input type="text" class="form-control" id="album-form-cover" placeholder="https://..."  />
           </div>
         </div>
 
@@ -3153,16 +3191,21 @@
     // ۴. مدیریت قطعات موسیقی
     async function fetchTracksFromBackend() {
       try {
-        const res = await fetch('/api/tracks');
+        const res = await fetch('/api/admin/tracks');
         if (!res.ok) throw new Error();
         TRACKS_DB = await res.json();
       } catch (err) {
         TRACKS_DB = [];
       }
+      const draftCount = TRACKS_DB.filter(t => !t.audio_path || !t.is_published).length;
+      const draftBadge = document.getElementById('draft-tracks-count');
+      if (draftBadge) draftBadge.textContent = draftCount.toLocaleString('fa-IR');
+
       renderTracksTable();
       if (TRACKS_DB.length > 0) {
+        const publishedFirst = TRACKS_DB.find(t => t.audio_path) || TRACKS_DB[0];
         if (!selectedStudioTrackId || !TRACKS_DB.some(t => t.id === selectedStudioTrackId)) {
-          selectedStudioTrackId = TRACKS_DB[0].id;
+          selectedStudioTrackId = publishedFirst.id;
         }
         renderStudioView();
       }
@@ -3214,30 +3257,28 @@
         return;
       }
 
-      tbody.innerHTML = tracksToRender.map((t, idx) => `
-        <tr>
+      tbody.innerHTML = tracksToRender.map((t, idx) => {
+        const isDraft = !t.audio_path || !t.is_published;
+        return `
+        <tr style="${isDraft ? 'background:rgba(245,158,11,0.05);' : ''}">
           <td><span style="color:var(--muted); font-weight:700; font-family:monospace; font-size:12px;">${idx + 1}</span></td>
           <td>
             <div class="track-meta-cell">
-              <img class="track-cover-thumb" src="${t.cover || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=100'}" alt="${escapeHtml(t.title)}" />
+              <img class="track-cover-thumb" src="${t.cover || '/logo.png'}" alt="${escapeHtml(t.title)}" />
               <div style="min-width:0;">
                 <div style="font-weight:800; font-size:13.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.title)}</div>
-                <div style="font-size:11px; color:var(--muted); margin-top:1px;">
+                <div style="font-size:11px; color:var(--muted); margin-top:2px; display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                   <span style="display:inline-block; background:rgba(255,255,255,0.05); padding:1px 6px; border-radius:4px; font-size:10px;">${escapeHtml(t.genre || 'عمومی')}</span>
+                  ${isDraft ? '<span style="display:inline-block; background:rgba(245,158,11,0.18); color:#fbbf24; border:1px solid rgba(245,158,11,0.35); padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700;">پیش‌نویس • در انتظار صوت</span>' : ''}
                 </div>
               </div>
             </div>
           </td>
-          <td>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <span style="font-weight:700; color:#fff;">${escapeHtml(t.artist || 'نامشخص')}</span>
-            </div>
-          </td>
+          <td><span style="font-weight:700; color:#fff;">${escapeHtml(t.artist || 'نامشخص')}</span></td>
           <td><span style="color:var(--muted); font-size:12.5px;">${escapeHtml(t.album || t.title)}</span></td>
           <td>
             <div style="display:inline-flex; align-items:center; gap:5px; direction:ltr; font-family:monospace; font-weight:600; color:var(--muted); background:rgba(255,255,255,0.03); padding:3px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              <span>${t.duration || '03:30'}</span>
+              <span>${t.duration || '00:00'}</span>
             </div>
           </td>
           <td>
@@ -3258,20 +3299,26 @@
           </td>
           <td>
             <div class="table-actions-cell">
-              <button class="btn-table-action lyrics-action" onclick="openTrackInLyricsStudio(${t.id})" title="ورود به استودیو لیریکس این آهنگ">
-                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
-                <span>لیریکس</span>
-              </button>
-              <button class="btn-table-action" onclick="openEditTrackModal(${t.id})" title="ویرایش اطلاعات قطعه">
+              ${isDraft ? `
+                <label class="btn-table-action" id="btn-upload-draft-${t.id}" style="background:rgba(16,185,84,0.16); color:#10B954; border:1px solid rgba(16,185,84,0.4); cursor:pointer; white-space:nowrap;" title="آپلود فایل صوتی، استخراج خودکار کاور و عنوان و انتشار در سایت">
+                  <span>آپلود صوت و انتشار</span>
+                  <input type="file" accept="audio/*,.mp3,.m4a,.flac,.wav" style="display:none;" onchange="uploadDraftAudioFile(${t.id}, this)" />
+                </label>
+              ` : `
+                <button class="btn-table-action lyrics-action" onclick="openTrackInLyricsStudio(${t.id})" title="استودیو لیریکس">
+                  <span>لیریکس</span>
+                </button>
+              `}
+              <button class="btn-table-action" onclick="openEditTrackModal(${t.id})" title="ویرایش">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
               </button>
-              <button class="btn-table-action danger" onclick="deleteTrack(${t.id})" title="حذف اثر">
+              <button class="btn-table-action danger" onclick="deleteTrack(${t.id})" title="حذف">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               </button>
             </div>
           </td>
-        </tr>
-      `).join('');
+        </tr>`;
+      }).join('');
 
       document.getElementById('badge-track-count').textContent = TRACKS_DB.length;
     }
@@ -3282,6 +3329,10 @@
 
       if (filterKey === 'all') {
         renderTracksTable(TRACKS_DB);
+      } else if (filterKey === 'drafts') {
+        renderTracksTable(TRACKS_DB.filter(t => !t.audio_path || !t.is_published));
+      } else if (filterKey === 'published') {
+        renderTracksTable(TRACKS_DB.filter(t => t.audio_path && t.is_published));
       } else if (filterKey === 'synced') {
         renderTracksTable(TRACKS_DB.filter(t => t.lyrics && t.lyrics.length > 0));
       } else if (filterKey === 'no-lyrics') {
@@ -3354,6 +3405,7 @@
       document.getElementById('track-form-duration').value = t.duration || "03:45";
       document.getElementById('track-form-duration-sec').value = t.duration_sec || "225";
       document.getElementById('track-form-cover').value = t.cover || "";
+      
       document.getElementById('track-form-hires').value = t.is_lossless ? "true" : "false";
       document.getElementById('track-form-audio-file').value = "";
       document.getElementById('track-form-cover-file').value = "";
@@ -3375,7 +3427,8 @@
       const title = document.getElementById('track-form-name').value.trim();
       const checkedArtists = document.querySelectorAll('.track-artist-checkbox:checked');
 
-      if (!title) {
+      // به‌جای خط ۳۳۷۸:
+      if (trackId && !title) {
         showToast('عنوان ترانه الزامی است.');
         return;
       }
@@ -3471,7 +3524,116 @@
         showToast(err.message || 'خطا در حذف قطعه');
       }
     }
+    // ارسال فایل اکسل برای ثبت دسته‌ای در حالت پیش‌نویس
+    async function submitBulkExcelImport() {
+      const fileInput = document.getElementById('bulk-excel-file-input');
+      if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+        showToast('لطفاً ابتدا فایل اکسل (.xlsx یا .csv) را انتخاب کنید.');
+        return;
+      }
 
+      const btn = document.getElementById('btn-submit-bulk-excel');
+      btn.disabled = true;
+      btn.textContent = 'در حال پردازش فایل اکسل...';
+
+      const formData = new FormData();
+      formData.append('excel_file', fileInput.files[0]);
+
+      try {
+        const res = await fetch('/api/admin/tracks/bulk-import', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+          },
+          body: formData
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'خطا در خواندن فایل اکسل');
+
+        showToast(data.message || 'ایمپورت با موفقیت انجام شد ✓');
+        fileInput.value = '';
+        closeModal('modal-bulk-excel');
+        await fetchTracksFromBackend();
+        await fetchDashboardStats();
+
+        // رفتن خودکار به تب «در انتظار صوت»
+        const draftChip = document.getElementById('chip-filter-drafts');
+        filterTracksTable('drafts', draftChip);
+      } catch (err) {
+        showToast(err.message || 'خطا در آپلود اکسل');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'ایمپورت در لیست پیش‌نویس';
+      }
+    }
+
+    // آپلود فایل صوتی برای یک آهنگ پیش‌نویس -> استخراج خودکار عنوان و کاور -> انتشار فوری
+    async function uploadDraftAudioFile(trackId, input) {
+      if (!input.files || !input.files[0]) return;
+      const file = input.files[0];
+      const labelBtn = document.getElementById(`btn-upload-draft-${trackId}`);
+      if (labelBtn) {
+        labelBtn.style.pointerEvents = 'none';
+        labelBtn.querySelector('span').textContent = 'در حال آپلود و استخراج...';
+      }
+
+      // خواندن دقیق مدت‌زمان فایل صوتی در مرورگر قبل از ارسال
+      const durationInfo = await new Promise((resolve) => {
+        const audio = new Audio();
+        const url = URL.createObjectURL(file);
+        audio.src = url;
+        audio.onloadedmetadata = () => {
+          const sec = Math.floor(audio.duration || 0);
+          URL.revokeObjectURL(url);
+          const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+          const ss = String(sec % 60).padStart(2, '0');
+          resolve({ sec, formatted: `${mm}:${ss}` });
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve({ sec: 0, formatted: '' });
+        };
+      });
+
+      const formData = new FormData();
+      formData.append('audio_file', file);
+      if (durationInfo.sec > 0) {
+        formData.append('duration_sec', durationInfo.sec);
+        formData.append('duration', durationInfo.formatted);
+      }
+
+      try {
+        const res = await fetch(`/api/admin/tracks/${trackId}/publish-audio`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+          },
+          body: formData
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'خطا در آپلود فایل صوتی');
+
+        showToast(data.message || 'آهنگ منتشر شد ✓');
+        await fetchTracksFromBackend();
+        await fetchDashboardStats();
+
+        // اگر همچنان پیش‌نویس باقی مانده روی همان تب بماند
+        const activeDrafts = document.getElementById('chip-filter-drafts')?.classList.contains('active');
+        if (activeDrafts) {
+          filterTracksTable('drafts', document.getElementById('chip-filter-drafts'));
+        }
+      } catch (err) {
+        showToast(err.message || 'خطا در ارتباط با سرور');
+        if (labelBtn) {
+          labelBtn.style.pointerEvents = '';
+          labelBtn.querySelector('span').textContent = 'آپلود صوت و انتشار';
+        }
+      } finally {
+        input.value = '';
+      }
+    }
     // ۵. استودیو لیریکس
     function renderStudioView() {
       const picker = document.getElementById('studio-track-picker');

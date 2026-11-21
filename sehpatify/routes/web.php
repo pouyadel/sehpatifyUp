@@ -78,7 +78,10 @@ Route::prefix('api')->group(function () {
 
         Route::prefix('admin')->group(function () {
             Route::get('/dashboard-stats', [TrackController::class, 'dashboardStats']);
-
+            Route::get('/tracks', [TrackController::class, 'adminIndex']);
+            Route::get('/tracks/import-template', [TrackController::class, 'downloadTemplate']);
+            Route::post('/tracks/bulk-import', [TrackController::class, 'bulkImport']);
+            Route::post('/tracks/{id}/publish-audio', [TrackController::class, 'publishAudio']);
             Route::post('/tracks', [TrackController::class, 'store']);
             Route::post('/tracks/{id}', [TrackController::class, 'update']);
             Route::post('/tracks/{id}/lyrics', [TrackController::class, 'saveLyrics']);
