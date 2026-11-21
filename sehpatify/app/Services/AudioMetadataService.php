@@ -187,6 +187,8 @@ class AudioMetadataService
                     $res['cover_mime'] = $mime ?: 'image/jpeg';
                     $res['cover_data'] = substr($body, $imgStart);
                 }
+            } elseif (in_array($frameId, ['TPE1', 'TP1'])) {
+                $res['artist'] = self::decodeId3Text(ord($body[0]), substr($body, 1));
             } elseif ($frameId === 'PIC' && empty($res['cover_data'])) {
                 $enc = ord($body[0]);
                 $fmt = strtolower(substr($body, 1, 3));
@@ -254,11 +256,12 @@ class AudioMetadataService
                         if ($timescale > 0) $res['duration_sec'] = (int) round($duration / $timescale);
                     }
                 }
-            } elseif (in_array($atomType, ["\xA9nam", "\xA9alb", 'covr'], true)) {
+            } elseif (in_array($atomType, ["\xA9nam", "\xA9alb", "\xA9ART", 'covr'], true)) {
                 $dataPayload = self::readMp4DataAtom($fp, $pos + $headerLen, $pos + $atomSize);
                 if ($dataPayload !== null) {
                     if ($atomType === "\xA9nam") $res['title'] = trim($dataPayload);
                     elseif ($atomType === "\xA9alb") $res['album'] = trim($dataPayload);
+                    elseif ($atomType === "\xA9ART") $res['artist'] = trim($dataPayload);
                     elseif ($atomType === 'covr' && empty($res['cover_data'])) {
                         $res['cover_data'] = $dataPayload;
                         $res['cover_mime'] = str_starts_with($dataPayload, "\x89PNG") ? 'image/png' : 'image/jpeg';
@@ -326,6 +329,7 @@ class AudioMetadataService
                         $pos += $cLen;
                         if (stripos($entry, 'TITLE=') === 0) $res['title'] = trim(substr($entry, 6));
                         if (stripos($entry, 'ALBUM=') === 0) $res['album'] = trim(substr($entry, 6));
+                        if (stripos($entry, 'ARTIST=') === 0) $res['artist'] = trim(substr($entry, 7));
                     }
                 }
             } elseif ($type === 6 && empty($res['cover_data']) && strlen($data) > 32) { // PICTURE

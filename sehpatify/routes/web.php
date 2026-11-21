@@ -81,6 +81,11 @@ Route::prefix('api')->group(function () {
             Route::get('/tracks', [TrackController::class, 'adminIndex']);
             Route::get('/tracks/import-template', [TrackController::class, 'downloadTemplate']);
             Route::post('/tracks/bulk-import', [TrackController::class, 'bulkImport']);
+            Route::post('/tracks/{id}/publish-audio', [TrackController::class, 'publishAudio'])->whereNumber('id');
+            Route::post('/tracks', [TrackController::class, 'store']);
+            Route::post('/tracks/{id}', [TrackController::class, 'update'])->whereNumber('id');
+            Route::post('/tracks/{id}/lyrics', [TrackController::class, 'saveLyrics'])->whereNumber('id');
+            Route::delete('/tracks/{id}', [TrackController::class, 'destroy'])->whereNumber('id');
             Route::post('/tracks/{id}/publish-audio', [TrackController::class, 'publishAudio']);
             Route::post('/tracks', [TrackController::class, 'store']);
             Route::post('/tracks/{id}', [TrackController::class, 'update']);

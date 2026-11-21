@@ -3384,6 +3384,7 @@
       document.getElementById('track-form-cover-file').value = "";
       document.getElementById('track-form-duration').value = "03:45";
       document.getElementById('track-form-duration-sec').value = "225";
+      document.getElementById('track-form-cover').value = "";
       
       const searchInput = document.getElementById('track-artists-search');
       if (searchInput) searchInput.value = "";
@@ -4689,34 +4690,48 @@
       openModal('modal-album');
     }
 
-    async function saveAlbumFromModal() {
-      const albumId = document.getElementById('album-form-id').value;
-      const title = document.getElementById('album-form-title').value.trim();
-      const artistId = document.getElementById('album-form-artist-id').value;
+    async function saveTrackFromModal() {
+   const trackId = document.getElementById('track-form-id').value;
+   const audioInput = document.getElementById('track-form-audio-file');
+   const title = document.getElementById('track-form-name').value.trim();
+   const checkedArtists = document.querySelectorAll('.track-artist-checkbox:checked');
 
-      if (!title || !artistId) {
-        showToast('عنوان آلبوم و خواننده الزامی هستند.');
-        return;
-      }
+   if (!trackId && (!audioInput.files || audioInput.files.length === 0)) {
+     showToast('لطفاً فایل صوتی آهنگ را انتخاب کنید.');
+     return;
+   }
 
-      const saveBtn = document.getElementById('btn-save-album');
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'در حال ذخیره‌سازی...';
+   const saveBtn = document.getElementById('btn-save-track');
+   saveBtn.disabled = true;
+   saveBtn.textContent = 'در حال ذخیره‌سازی...';
 
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('artist_id', artistId);
-      formData.append('genre', document.getElementById('album-form-genre').value);
-      formData.append('release_year', document.getElementById('album-form-year').value.trim());
-      formData.append('description', document.getElementById('album-form-desc').value.trim());
-      formData.append('search_keywords', document.getElementById('album-form-keywords').value.trim());
+   const formData = new FormData();
+   formData.append('title', title);
+   formData.append('album', document.getElementById('track-form-album').value.trim());
+   formData.append('genre', document.getElementById('track-form-genre').value);
+   formData.append('duration', document.getElementById('track-form-duration').value);
+   formData.append('duration_sec', document.getElementById('track-form-duration-sec').value);
+   formData.append('is_lossless', document.getElementById('track-form-hires').value);
+   formData.append('search_keywords', document.getElementById('track-form-keywords').value.trim());
 
-      const coverInput = document.getElementById('album-form-cover-file');
-      if (coverInput.files && coverInput.files[0]) {
-        formData.append('cover_file', coverInput.files[0]);
-      } else {
-        formData.append('cover_url', document.getElementById('album-form-cover').value);
-      }
+   if (checkedArtists.length > 0) {
+     checkedArtists.forEach(cb => {
+       formData.append('artist_ids[]', cb.value);
+     });
+     formData.append('artist_id', checkedArtists[0].value);
+   }
+
+   if (audioInput.files && audioInput.files[0]) {
+     formData.append('audio_file', audioInput.files[0]);
+   }
+
+   const coverInput = document.getElementById('track-form-cover-file');
+   if (coverInput.files && coverInput.files[0]) {
+     formData.append('cover_file', coverInput.files[0]);
+   } else {
+     const coverUrlVal = document.getElementById('track-form-cover').value.trim();
+     if (coverUrlVal) formData.append('cover_url', coverUrlVal);
+   }
 
       document.querySelectorAll('.album-track-checkbox:checked').forEach(cb => {
         formData.append('track_ids[]', cb.value);

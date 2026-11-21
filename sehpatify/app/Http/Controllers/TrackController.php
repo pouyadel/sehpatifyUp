@@ -283,34 +283,45 @@ class TrackController extends Controller
             'audio_file.required' => 'فایل صوتی ترانه را انتخاب نکرده‌اید.',
         ]);
 
-        $artistIds = $request->input('artist_ids', []);
-        if (empty($artistIds) && $request->filled('artist_id')) {
-            $artistIds = [$request->input('artist_id')];
-        }
-        if (empty($artistIds)) {
-            return response()->json([
-                'message' => 'لطفاً حداقل یک خواننده برای ترانه انتخاب فرمایید.',
-                'errors'  => ['artist_id' => ['انتخاب خواننده الزامی است.']]
-            ], 422);
-        }
-
-        $artists = Artist::whereIn('id', $artistIds)->get();
-        if ($artists->isEmpty()) {
-            return response()->json(['message' => 'خواننده انتخاب شده یافت نشد.'], 422);
-        }
-
         $uploadedAudio = $request->file('audio_file');
         $audioPath = $uploadedAudio->store('tracks', 'public');
         $fullAudioPath = Storage::disk('public')->path($audioPath);
 
-        // استخراج خودکار متادیتا و کاور از فایل صوتی
+        // استخراج خودکار متادیتا (عنوان، خواننده، آلبوم، کاور و مدت‌زمان) از فایل صوتی
         $autoExtract = filter_var($request->input('auto_extract_meta', true), FILTER_VALIDATE_BOOLEAN);
         $meta = $autoExtract
             ? AudioMetadataService::extractAndStoreCover($fullAudioPath, $uploadedAudio->getClientOriginalName())
-            : ['title' => null, 'album' => null, 'cover_path' => null, 'duration_sec' => null, 'duration' => null];
+            : ['title' => null, 'artist' => null, 'album' => null, 'cover_path' => null, 'duration_sec' => null, 'duration' => null];
+
+        // ۱. بررسی خوانندگان انتخاب‌شده از فرم
+        $artistIds = array_filter((array) $request->input('artist_ids', []));
+        if (empty($artistIds) && $request->filled('artist_id')) {
+            $artistIds = [$request->input('artist_id')];
+        }
+
+        $artists = !empty($artistIds) ? Artist::whereIn('id', $artistIds)->get() : collect();
+
+        // ۲. اگر خواننده از فرم انتخاب نشده بود، از تگ فایل صوتی استخراج و متصل کن
+        if ($artists->isEmpty() && !empty($meta['artist'])) {
+            $artistNames = array_values(array_filter(array_map('trim', preg_split('/[,&،;\/]+/u', $meta['artist']))));
+            foreach ($artistNames as $aName) {
+                $existing = Artist::whereRaw('LOWER(name) = ?', [mb_strtolower($aName, 'UTF-8')])->first();
+                if (!$existing) {
+                    $existing = Artist::create([
+                        'name'      => $aName,
+                        'slug'      => Str::slug($aName) ?: ('artist-' . Str::random(6)),
+                        'listeners' => '۰',
+                        'verified'  => false,
+                    ]);
+                }
+                $artists->push($existing);
+            }
+        }
 
         $manualTitle = trim((string) $request->input('title', ''));
-        $finalTitle = $manualTitle !== '' ? $manualTitle : ($meta['title'] ?: pathinfo($uploadedAudio->getClientOriginalName(), PATHINFO_FILENAME));
+        $finalTitle = $manualTitle !== ''
+            ? $manualTitle
+            : ($meta['title'] ?: pathinfo($uploadedAudio->getClientOriginalName(), PATHINFO_FILENAME));
 
         $coverPath = null;
         if ($request->hasFile('cover_file')) {
@@ -329,8 +340,8 @@ class TrackController extends Controller
 
         $payload = [
             'title'           => $finalTitle,
-            'artist'          => $artists->pluck('name')->join(' & '),
-            'artist_id'       => $artists->first()->id,
+            'artist'          => $artists->isNotEmpty() ? $artists->pluck('name')->join(' & ') : 'نامشخص',
+            'artist_id'       => $artists->first()?->id,
             'album'           => $request->input('album') ?: ($meta['album'] ?: $finalTitle),
             'genre'           => $genreName,
             'genre_id'        => $genreModel?->id,
@@ -350,11 +361,13 @@ class TrackController extends Controller
 
         $track = Track::create($payload);
 
-        $syncData = [];
-        foreach ($artists as $a) {
-            $syncData[$a->id] = ['created_at' => now(), 'updated_at' => now()];
+        if ($artists->isNotEmpty()) {
+            $syncData = [];
+            foreach ($artists as $a) {
+                $syncData[$a->id] = ['created_at' => now(), 'updated_at' => now()];
+            }
+            $track->artists()->sync($syncData);
         }
-        $track->artists()->sync($syncData);
 
         return response()->json($this->formatTrack($track->fresh('artists')), 201);
     }
