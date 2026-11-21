@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Artist extends Model
+{
+    use HasFactory;
+    protected $guarded = [];
+
+    protected $casts = [
+        'verified' => 'boolean',
+    ];
+
+    // رابطه چند-به-چند با سبک‌ها
+    public function genres()
+    {
+        return $this->belongsToMany(Genre::class, 'artist_genre');
+    }
+
+    // رابطه یک-به-چند با آهنگ‌ها
+    public function tracks()
+    {
+        return $this->belongsToMany(Track::class, 'artist_track')->withTimestamps();
+    }
+    public function albums()
+{
+    return $this->hasMany(Album::class);
+}
+}
